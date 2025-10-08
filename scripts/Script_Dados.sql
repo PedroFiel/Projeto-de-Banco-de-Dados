@@ -1,3 +1,5 @@
+CREATE DATABASE dataset_b3;
+
 CREATE TABLE dataset_b3.setores (
   setor_id INTEGER AUTO_INCREMENT PRIMARY KEY,
   nome_setor VARCHAR(255) NOT NULL,
@@ -93,19 +95,7 @@ CREATE TABLE dataset_b3.historico_mensal (
   id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
   ano INTEGER,
-  jan VARCHAR(10),
-  feb VARCHAR(10),
-  mar VARCHAR(10),
-  abr VARCHAR(10),
-  mai VARCHAR(10),
-  jun VARCHAR(10),
-  jul VARCHAR(10),
-  ago VARCHAR(10),
-  `set` VARCHAR(10),
-  `oct` VARCHAR(10),
-  nov VARCHAR(10),
-  dez VARCHAR(10),
-  eoy VARCHAR(10),
+  mes INTEGER,
   CONSTRAINT fk_historicomensal_empresas
 	FOREIGN KEY (acao)
     REFERENCES empresas(papel)
