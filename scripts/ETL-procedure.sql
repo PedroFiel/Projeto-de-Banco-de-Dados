@@ -238,16 +238,16 @@ BEGIN
         ------------------------------------------------------
         -- 5️⃣ Log de sucesso
         ------------------------------------------------------
-        INSERT INTO ETL_LOG (ProcedureName, FilePath, Status, Message)
-        VALUES ('SP_ETL_FATOS_RELEVANTES', @CAMINHO_CSV, 'SUCESSO', 'Arquivo carregado e tratado com sucesso');
+        INSERT INTO B3_LOG (ProcedureName, FilePath, Status, Message)
+        VALUES ('SP_FATOS_RELEVANTES', @CAMINHO_CSV, 'SUCESSO', 'Arquivo carregado e tratado com sucesso');
 
     END TRY
     BEGIN CATCH
         ------------------------------------------------------
         -- 6️⃣ Log de erro
         ------------------------------------------------------
-        INSERT INTO ETL_LOG (ProcedureName, FilePath, Status, Message)
-        VALUES ('SP_ETL_FATOS_RELEVANTES', @CAMINHO_CSV, 'ERRO', ERROR_MESSAGE());
+        INSERT INTO B3_LOG (ProcedureName, FilePath, Status, Message)
+        VALUES ('SP_FATOS_RELEVANTES', @CAMINHO_CSV, 'ERRO', ERROR_MESSAGE());
     END CATCH
 END;
 GO
