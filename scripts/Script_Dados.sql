@@ -1,13 +1,15 @@
 CREATE DATABASE dataset_b3;
 
-CREATE TABLE dataset_b3.setores (
-  setor_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+USE dataset_b3;
+
+CREATE TABLE setores (
+  setor_id INTEGER PRIMARY KEY,
   nome_setor VARCHAR(255) NOT NULL,
   categoria_superior VARCHAR(255)
 );
 
-CREATE TABLE dataset_b3.empresas (
-  empresa_id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE empresas (
+  empresa_id INTEGER PRIMARY KEY,
   papel VARCHAR(10) UNIQUE NOT NULL,
   razao_social VARCHAR(255),
   cnpj VARCHAR(20),
@@ -18,7 +20,7 @@ CREATE TABLE dataset_b3.empresas (
     REFERENCES setores(setor_id)
 );
 
-CREATE TABLE dataset_b3.dados_financeiros (
+CREATE TABLE dados_financeiros (
   id INTEGER PRIMARY KEY,
   data_dado_inserido DATE,
   papel VARCHAR(10),
@@ -31,8 +33,8 @@ CREATE TABLE dataset_b3.dados_financeiros (
   max_52_sem INTEGER,
   vol_med_2m INTEGER,
   valor_mercado INTEGER,
-  valor_firma DOUBLE,
-  ult_balanco_pro DOUBLE,
+  valor_firma DOUBLE PRECISION,
+  ult_balanco_pro DOUBLE PRECISION,
   nr_acoes INTEGER,
   os_dia DOUBLE PRECISION,
   pl DOUBLE PRECISION,
@@ -68,8 +70,8 @@ CREATE TABLE dataset_b3.dados_financeiros (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.fatos_relevantes (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE fatos_relevantes (
+  id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
   data DATE,
   hora TIME,
@@ -80,8 +82,8 @@ CREATE TABLE dataset_b3.fatos_relevantes (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.demonstracoes_trimestrais (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE demonstracoes_trimestrais (
+  id INTEGER PRIMARY KEY,
   data_referencia DATE,
   url_demonstracao VARCHAR(255),
   url_release VARCHAR(255),
@@ -91,7 +93,7 @@ CREATE TABLE dataset_b3.demonstracoes_trimestrais (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.historico_mensal (
+CREATE TABLE historico_mensal (
   id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
   ano INTEGER,
@@ -101,8 +103,8 @@ CREATE TABLE dataset_b3.historico_mensal (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.precos_diarios (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE precos_diarios (
+  id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
   data DATE,
   fechamento DECIMAL(10,6),
@@ -122,8 +124,8 @@ CREATE TABLE dataset_b3.precos_diarios (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.proventos (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE proventos (
+  id INTEGER PRIMARY KEY,
   data_decl DATE,
   data_pagamento VARCHAR(50),
   valor DECIMAL(10,4),
@@ -135,8 +137,8 @@ CREATE TABLE dataset_b3.proventos (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.retornos_acumulados (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE retornos_acumulados (
+  id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
   periodo_dias INTEGER,
   total_acumulado DECIMAL(8,2),
@@ -145,8 +147,8 @@ CREATE TABLE dataset_b3.retornos_acumulados (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE dataset_b3.sites_ri (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE sites_ri (
+  id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
   site VARCHAR(255),
   CONSTRAINT fk_sitesri_empresas
@@ -154,8 +156,8 @@ CREATE TABLE dataset_b3.sites_ri (
     REFERENCES empresas(papel)
 );
 ----------
-CREATE TABLE dataset_b3.balancos_anuais (
-  id INTEGER AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE balancos_anuais (
+  id INTEGER PRIMARY KEY,
   empresa_id INTEGER,
   ano INTEGER,
   link_balanco VARCHAR(255),
@@ -165,7 +167,7 @@ CREATE TABLE dataset_b3.balancos_anuais (
     REFERENCES empresas(empresa_id)
 );
 
-CREATE TABLE dataset_b3.indicadores_setoriais (
+CREATE TABLE indicadores_setoriais (
   id INTEGER PRIMARY KEY,
   setor_id INTEGER,
   data_referencia DATE,
@@ -178,29 +180,29 @@ CREATE TABLE dataset_b3.indicadores_setoriais (
     REFERENCES setores(setor_id)
 );
 
-CREATE TABLE dataset_b3.cotacoes_setoriais (
+CREATE TABLE cotacoes_setoriais (
   id INTEGER PRIMARY KEY,
   setor_id INTEGER,
   data DATE,
-  valor_mercado_total DOUBLE,
+  valor_mercado_total DOUBLE PRECISION,
   retorno_setor_pct DOUBLE PRECISION,
   CONSTRAINT fk_cotacoessetoriais_setores
 	FOREIGN KEY (setor_id)
     REFERENCES setores(setor_id)
 );
 
-CREATE TABLE dataset_b3.dividendos_setoriais (
+CREATE TABLE dividendos_setoriais (
   id INTEGER PRIMARY KEY,
   setor_id INTEGER,
   ano INTEGER,
-  total_proventos_valor DOUBLE,
+  total_proventos_valor DOUBLE PRECISION,
   total_proventos_quantidade INTEGER,
   CONSTRAINT fk_dividendossetoriais_setores
 	FOREIGN KEY (setor_id)
     REFERENCES setores(setor_id)
 );
 
-CREATE TABLE dataset_b3.fatos_setoriais (
+CREATE TABLE fatos_setoriais (
   id INTEGER PRIMARY KEY,
   setor_id INTEGER,
   data DATE,
