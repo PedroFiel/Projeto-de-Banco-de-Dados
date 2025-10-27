@@ -1,0 +1,286 @@
+USE dataset_b3;
+GO
+
+-- Remove procedures antigas, se existirem
+DROP PROCEDURE IF EXISTS SP_ETL_DADOS_GERAIS;
+DROP PROCEDURE IF EXISTS SP_CARREGA_CSV_DADOS_GERAIS;
+DROP PROCEDURE IF EXISTS SP_TRATA_CSV_DADOS_GERAIS;
+DROP PROCEDURE IF EXISTS SP_EXTRAI_CSV_DADOS_GERAIS;
+GO
+
+
+------------------------------------------------------------
+-- 1️⃣ EXTRAÇÃO - Lê o CSV e carrega na staging global
+------------------------------------------------------------
+CREATE PROCEDURE SP_EXTRAI_CSV_DADOS_GERAIS
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    PRINT '📂 Iniciando extração do arquivo: ';
+
+    IF OBJECT_ID('tempdb..##temp_dados_gerais_bruto') IS NOT NULL
+        DROP TABLE ##temp_dados_gerais_bruto;
+
+    CREATE TABLE ##temp_dados_gerais_bruto (
+        id VARCHAR(MAX),
+        papel VARCHAR(MAX),
+        tipo VARCHAR(MAX),
+        empresa VARCHAR(MAX),
+        setor VARCHAR(MAX),
+        cotacao VARCHAR(MAX),
+        data_ult_cotacao VARCHAR(MAX),
+        min_52_sem VARCHAR(MAX),
+        max_52_sem VARCHAR(MAX),
+        vol_med_2m VARCHAR(MAX),
+        valor_mercado VARCHAR(MAX),
+        valor_firma VARCHAR(MAX),
+        ult_balanco_pro VARCHAR(MAX),2
+        nr_acoes VARCHAR(MAX),
+        os_dia VARCHAR(MAX),
+        pl VARCHAR(MAX),
+        lpa VARCHAR(MAX),
+        pvp VARCHAR(MAX),
+        vpa VARCHAR(MAX),
+        p_ebit VARCHAR(MAX),
+        psr VARCHAR(MAX),
+        p_ativos VARCHAR(MAX),
+        p_cap_giro VARCHAR(MAX),
+        p_ativo_circ_liq VARCHAR(MAX),
+        ev_ebitda VARCHAR(MAX),
+        ev_ebit VARCHAR(MAX),
+        marg_bruta VARCHAR(MAX),
+        marg_ebit VARCHAR(MAX),
+        marg_liquida VARCHAR(MAX),
+        ebit_ativo VARCHAR(MAX),
+        roic VARCHAR(MAX),
+        roe VARCHAR(MAX),
+        cresc_rec_5a VARCHAR(MAX),
+        div_yield VARCHAR(MAX),
+        liquidez_corr VARCHAR(MAX),
+        ativo VARCHAR(MAX),
+        disponibilidades VARCHAR(MAX),
+        ativo_circulante VARCHAR(MAX),
+        div_bruta VARCHAR(MAX),
+        div_liquida VARCHAR(MAX),
+        patr_liquido VARCHAR(MAX),
+        lucro_liquido_12m VARCHAR(MAX),
+        lucro_liquido_3m VARCHAR(MAX)
+    );
+CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(40MAX));
+
+-- Lista todos os arquivos .csv na pasta desejada
+INSERT INTO #Arquivos (NomeArquivo)
+EXEC xp_cmdshell 'dir /b "C:\dataset\DadosGerais\*.csv"';
+
+-- Remove linhas nulas (resultantes do DIR)
+DELETE FROM #Arquivos WHERE NomeArquivo IS NULL;
+
+-- =====================================================
+-- LOOP PARA FAZER BULK INSERT DE CADA ARQUIVO
+-- =====================================================
+DECLARE @arquivo NVARCHAR(40MAX), 
+        @sql NVARCHAR(MMAX);
+
+DECLARE cursor_arquivos CURSOR FOR
+SELECT NomeArquivo FROM #Arquivos;
+
+OPEN cursor_arquivos;
+FETCH NEXT FROM cursor_arquivos INTO @arquivo;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    SET @sql = '
+        BULK INSERT dataset_b3.dbo.##temp_dados_gerais_bruto
+        FROM ''C:\dataset\DadosGerais\' + @arquivo + '''
+        WITH (
+            FIRSTROW = 2,               -- ignora cabeçalho
+            FIELDTERMINATOR = '';'',    -- separador CSV
+            ROWTERMINATOR = ''\n'',     -- quebra de linha
+            TABLOCK,
+            CODEPAGE = ''65001''-- encoding padrão Windows
+        );';
+
+    PRINT 'Importando arquivo: ' + @arquivo;
+    EXEC (@sql);
+
+    FETCH NEXT FROM cursor_arquivos INTO @arquivo;
+END;
+
+CLOSE cursor_arquivos;
+DEALLOCATE cursor_arquivos;
+
+DROP TABLE #Arquivos;
+
+PRINT '✅ Importação concluída com sucesso!';
+
+    DECLARE @Linhas INT = (SELECT COUNT(*) FROM ##temp_dados_gerais_bruto);
+    PRINT '📥 Linhas extraídas: ' + CAST(@Linhas AS VARCHAR(MAX));
+END;
+GO
+------------------------------------------------------------
+-- 2️⃣ TRANSFORMAÇÃO - Limpa e converte tipos
+------------------------------------------------------------
+CREATE PROCEDURE SP_TRATA_CSV_DADOS_GERAIS
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    PRINT '⚙️ Iniciando transformação dos dados...';
+
+    IF OBJECT_ID('tempdb..##temp_dados_gerais_convertido') IS NOT NULL
+        DROP TABLE ##temp_dados_gerais_convertido;
+
+    CREATE TABLE ##temp_dados_gerais_convertido (
+        id INTEGER PRIMARY KEY,
+        papel VARCHAR(MAX),
+        tipo VARCHAR(MAX),
+        empresa VARCHAR(MAX),
+        setor VARCHAR(MAX),
+        cotacao FLOAT,
+        data_ult_cotacao DATE,
+        min_52_sem FLOAT,
+        max_52_sem FLOAT,
+        vol_med_2m FLOAT,
+        valor_mercado FLOAT,
+        valor_firma FLOAT,
+        ult_balanco_pro FLOAT,
+        nr_acoes FLOAT,
+        os_dia FLOAT,
+        pl FLOAT,
+        lpa FLOAT,
+        pvp FLOAT,
+        vpa FLOAT,
+        p_ebit FLOAT,
+        psr FLOAT,
+        p_ativos FLOAT,
+        p_cap_giro FLOAT,
+        p_ativo_circ_liq FLOAT,
+        ev_ebitda FLOAT,
+        ev_ebit FLOAT,
+        marg_bruta FLOAT,
+        marg_ebit FLOAT,
+        marg_liquida FLOAT,
+        ebit_ativo FLOAT,
+        roic FLOAT,
+        roe FLOAT,
+        cresc_rec_5a FLOAT,
+        div_yield FLOAT,
+        liquidez_corr FLOAT,
+        ativo FLOAT,
+        disponibilidades FLOAT,
+        ativo_circulante FLOAT,
+        div_bruta FLOAT,
+        div_liquida FLOAT,
+        patr_liquido FLOAT,
+        lucro_liquido_12m FLOAT,
+        lucro_liquido_3m FLOAT
+    );
+
+    INSERT INTO ##temp_dados_gerais_convertido
+    SELECT
+        TRY_CAST(id AS INT),
+        LTRIM(RTRIM(papel)),
+        LTRIM(RTRIM(tipo)),
+        LTRIM(RTRIM(empresa)),
+        LTRIM(RTRIM(setor)),
+        TRY_CAST(REPLACE(cotacao, ',', '.') AS FLOAT),
+        TRY_CONVERT(DATE, data_ult_cotacao, 103),
+        TRY_CAST(REPLACE(min_52_sem, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(max_52_sem, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(vol_med_2m, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(valor_mercado, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(valor_firma, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(ult_balanco_pro, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(nr_acoes, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(os_dia, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(pl, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(lpa, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(pvp, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(vpa, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(p_ebit, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(psr, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(p_ativos, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(p_cap_giro, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(p_ativo_circ_liq, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(ev_ebitda, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(ev_ebit, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(marg_bruta, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(marg_ebit, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(marg_liquida, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(ebit_ativo, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(roic, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(roe, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(cresc_rec_5a, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(div_yield, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(liquidez_corr, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(ativo, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(disponibilidades, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(ativo_circulante, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(div_bruta, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(div_liquida, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(patr_liquido, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(lucro_liquido_12m, ',', '.') AS FLOAT),
+        TRY_CAST(REPLACE(lucro_liquido_3m, ',', '.') AS FLOAT)
+    FROM ##temp_dados_gerais_bruto;
+
+    PRINT '✅ Transformação concluída.';
+END;
+GO
+
+
+------------------------------------------------------------
+-- 3️⃣ CARGA - Insere na tabela final
+------------------------------------------------------------
+CREATE PROCEDURE SP_CARREGA_CSV_DADOS_GERAIS
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    PRINT '💾 Iniciando carga de dados para dbo.dados_financeiros...';
+
+    INSERT INTO dbo.dados_financeiros (
+        id, papel, tipo, empresa, setor,
+        cotacao, data_ult_cotacao, min_52_sem, max_52_sem, vol_med_2m,
+        valor_mercado, valor_firma, ult_balanco_pro, nr_acoes, os_dia,
+        pl, lpa, pvp, vpa, p_ebit, psr, p_ativos, p_cap_giro,
+        p_ativo_circ_liq, ev_ebitda, ev_ebit, marg_bruta, marg_ebit,
+        marg_liquida, ebit_ativo, roic, roe, cresc_rec_5a, div_yield,
+        liquidez_corr, ativo, disponibilidades, ativo_circulante,
+        div_bruta, div_liquida, patr_liquido, lucro_liquido_12m, lucro_liquido_3m
+    )
+    SELECT * FROM ##temp_dados_gerais_convertido;
+
+    PRINT '✅ Dados carregados com sucesso.';
+END;
+GO
+
+
+------------------------------------------------------------
+-- 4️⃣ ETL MASTER - Controla todo o processo
+------------------------------------------------------------
+CREATE PROCEDURE SP_ETL_DADOS_GERAIS
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    PRINT '🚀 Iniciando processo ETL DADOS_GERAIS...';
+
+    BEGIN TRY
+        EXEC SP_EXTRAI_CSV_DADOS_GERAIS;
+        EXEC SP_TRATA_CSV_DADOS_GERAIS;
+        EXEC SP_CARREGA_CSV_DADOS_GERAIS;
+
+        -- Limpa temporárias
+        IF OBJECT_ID('tempdb..##temp_dados_gerais_bruto') IS NOT NULL DROP TABLE ##temp_dados_gerais_bruto;
+        IF OBJECT_ID('tempdb..##temp_dados_gerais_convertido') IS NOT NULL DROP TABLE ##temp_dados_gerais_convertido;
+
+        PRINT '🏁 Processo ETL finalizado com sucesso.';
+    END TRY
+    BEGIN CATCH
+        PRINT '❌ Erro no processo ETL: ' + ERROR_MESSAGE();
+    END CATCH
+END;
+GO
+
+
