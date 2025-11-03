@@ -106,7 +106,7 @@ CREATE TABLE historico_mensal (
 CREATE TABLE precos_diarios (
   id INTEGER PRIMARY KEY,
   acao VARCHAR(10),
-  data DATE,
+  data_preco DATE,
   fechamento DECIMAL(10,6),
   maxima DECIMAL(10,6),
   minima DECIMAL(10,6),
@@ -127,10 +127,10 @@ CREATE TABLE precos_diarios (
 CREATE TABLE proventos (
   id INTEGER PRIMARY KEY,
   data_decl DATE,
-  data_pagamento VARCHAR(50),
   valor DECIMAL(10,4),
-  quant_acoes INTEGER,
   tipo VARCHAR(50),
+  data_pagamento VARCHAR(50),
+  quant_acoes INTEGER,
   acao VARCHAR(10),
   CONSTRAINT fk_proventos_empresas
 	FOREIGN KEY (acao)
