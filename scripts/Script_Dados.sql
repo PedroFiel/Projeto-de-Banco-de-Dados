@@ -20,55 +20,53 @@ CREATE TABLE empresas (
     REFERENCES setores(setor_id)
 );
 
-CREATE TABLE dados_financeiros (
-  id INTEGER PRIMARY KEY,
-  data_dado_inserido DATE,
-  papel VARCHAR(10),
-  tipo VARCHAR(255),
-  empresa VARCHAR(255),
-  setor VARCHAR(255),
-  cotacao INTEGER,
-  data_ult_cotacao DATE,
-  min_52_sem INTEGER,
-  max_52_sem INTEGER,
-  vol_med_2m INTEGER,
-  valor_mercado INTEGER,
-  valor_firma DOUBLE PRECISION,
-  ult_balanco_pro DOUBLE PRECISION,
-  nr_acoes INTEGER,
-  os_dia DOUBLE PRECISION,
-  pl DOUBLE PRECISION,
-  lpa DOUBLE PRECISION,
-  pvp DOUBLE PRECISION,
-  vpa DOUBLE PRECISION,
-  p_ebit DOUBLE PRECISION,
-  psr DOUBLE PRECISION,
-  p_ativos DOUBLE PRECISION,
-  p_cap_giro DOUBLE PRECISION,
-  p_ativo_circ_liq DOUBLE PRECISION,
-  ev_ebitda DOUBLE PRECISION,
-  ev_ebit DOUBLE PRECISION,
-  marg_bruta DOUBLE PRECISION,
-  marg_ebit DOUBLE PRECISION,
-  marg_liquida DOUBLE PRECISION,
-  ebit_ativo DOUBLE PRECISION,
-  roic DOUBLE PRECISION,
-  roe DOUBLE PRECISION,
-  cresc_rec_5a DOUBLE PRECISION,
-  div_yield DOUBLE PRECISION,
-  liquidez_corr DOUBLE PRECISION,
-  ativo DOUBLE PRECISION,
-  disponibilidades DOUBLE PRECISION,
-  ativo_circulante DOUBLE PRECISION,
-  div_bruta DOUBLE PRECISION,
-  div_liquida DOUBLE PRECISION,
-  patr_liquido DOUBLE PRECISION,
-  lucro_liquido_12m DOUBLE PRECISION,
-  lucro_liquido_3m DOUBLE PRECISION,
-  CONSTRAINT fk_dadosfinanceiros_empresas
-	FOREIGN KEY (papel)
-    REFERENCES empresas(papel)
+CREATE TABLE dbo.dados_financeiros (
+    id_dados INT PRIMARY KEY NOT NULL,                        -- id do registro
+    papel VARCHAR(50),                         -- código do ativo (ex: PETR4)
+    tipo VARCHAR(50),                          -- tipo da ação (ON, PN, etc)
+    empresa VARCHAR(200),                      -- nome da empresa
+    setor VARCHAR(200),                        -- setor da empresa
+    cotacao DECIMAL(18,2),                     -- cotação atual
+    data_ult_cotacao DATE,                     -- data da última cotação
+    min_52_sem DECIMAL(18,2),                  -- mínimo 52 semanas
+    max_52_sem DECIMAL(18,2),                  -- máximo 52 semanas
+    vol_med_2m BIGINT,                         -- volume médio 2 meses
+    valor_mercado BIGINT,                      -- valor de mercado
+    valor_firma BIGINT,                        -- valor da firma
+    ult_balanco_pro DATE,                      -- data do último balanço
+    nr_acoes BIGINT,                           -- número de ações
+    os_dia DECIMAL(16,2),                                -- oscilação do dia
+    pl DECIMAL(16,2),                          -- preço/lucro
+    lpa DECIMAL(16,2),                         -- lucro por ação
+    pvp DECIMAL(16,2),                         -- preço/valor patrimonial
+    vpa DECIMAL(16,2),                         -- valor patrimonial por ação
+    p_ebit DECIMAL(16,2),                      -- preço/EBIT
+    psr DECIMAL(18,4),                         -- preço/receita
+    p_ativos DECIMAL(18,4),                    -- preço/ativos
+    p_cap_giro DECIMAL(18,4),                  -- preço/capital de giro
+    p_ativo_circ_liq DECIMAL(18,4),            -- preço/ativo circulante líquido
+    ev_ebitda DECIMAL(18,4),                   -- EV/EBITDA
+    ev_ebit DECIMAL(18,4),                     -- EV/EBIT
+    marg_bruta DECIMAL(10,2),                  -- margem bruta
+    marg_ebit DECIMAL(10,4),                   -- margem EBIT
+    marg_liquida DECIMAL(10,4),                -- margem líquida
+    ebit_ativo DECIMAL(18,2),                  -- EBIT / Ativo
+    roic DECIMAL(10,4),                        -- retorno sobre capital investido
+    roe DECIMAL(10,4),                         -- retorno sobre patrimônio líquido
+    cresc_rec_5a DECIMAL(10,4),                -- crescimento da receita em 5 anos
+    div_yield DECIMAL(10,4),                   -- dividend yield
+    liquidez_corr DECIMAL(18,4),               -- liquidez corrente
+    ativo BIGINT NULL,
+    disponibilidades BIGINT NULL,
+    ativo_circulante BIGINT NULL,
+    div_bruta BIGINT NULL,
+    div_liquida BIGINT NULL,
+    patr_liquido BIGINT NULL,
+    lucro_liquido_12m BIGINT NULL,
+    lucro_liquido_3m BIGINT NULL
 );
+GO
+
 
 CREATE TABLE fatos_relevantes (
   id INTEGER PRIMARY KEY,
