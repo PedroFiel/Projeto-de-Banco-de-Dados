@@ -122,17 +122,14 @@ CREATE TABLE precos_diarios (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE proventos (
-  id INTEGER PRIMARY KEY,
-  data_decl DATE,
-  valor DECIMAL(10,4),
-  tipo VARCHAR(50),
-  data_pagamento VARCHAR(50),
-  quant_acoes INTEGER,
-  acao VARCHAR(10),
-  CONSTRAINT fk_proventos_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+CREATE TABLE dbo.proventos (
+    data_decl DATE NULL,                   -- Data da declaração do provento
+    valor DECIMAL(10,4) NULL,              -- Valor unitário do provento (por ação)
+    tipo VARCHAR(50) NULL,                 -- Tipo de provento (ex: DIVIDENDO, JCP)
+    data_pagamento DATE NULL,              -- Data do pagamento efetivo
+    quant_acoes INT NULL,                  -- Quantas ações base para o pagamento
+    acao VARCHAR(10) NULL,                 -- Código do ativo (ex: ALUP11)
+
 );
 
 CREATE TABLE retornos_acumulados (
