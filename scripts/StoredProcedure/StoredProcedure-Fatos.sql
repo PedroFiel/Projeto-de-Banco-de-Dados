@@ -30,7 +30,8 @@ BEGIN
         descricao VARCHAR(MAX),
         link VARCHAR(MAX)
     );
-CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(40MAX));
+
+CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(MAX));
 
 -- Lista todos os arquivos .csv na pasta desejada
 INSERT INTO #Arquivos (NomeArquivo)
@@ -42,8 +43,8 @@ DELETE FROM #Arquivos WHERE NomeArquivo IS NULL;
 -- =====================================================
 -- LOOP PARA FAZER BULK INSERT DE CADA ARQUIVO
 -- =====================================================
-DECLARE @arquivo NVARCHAR(40MAX), 
-        @sql NVARCHAR(MMAX);
+DECLARE @arquivo NVARCHAR(MAX), 
+        @sql NVARCHAR(MAX);
 
 DECLARE cursor_arquivos CURSOR FOR
 SELECT NomeArquivo FROM #Arquivos;
@@ -54,7 +55,7 @@ FETCH NEXT FROM cursor_arquivos INTO @arquivo;
 WHILE @@FETCH_STATUS = 0
 BEGIN
     SET @sql = '
-        BULK INSERT dataset_b3.dbo.##temp_dados_gerais_bruto
+        BULK INSERT dataset_b3.dbo.##temp_fatos_relevantes_bruto
         FROM ''C:\dataset\FatosRelevantes\' + @arquivo + '''
         WITH (
             FIRSTROW = 2,               -- ignora cabeçalho
@@ -89,28 +90,54 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    PRINT '⚙ Iniciando transformação dos dados...';
+    PRINT '⚙️ Iniciando transformação dos dados de FATOS RELEVANTES...';
 
+    -- Remove se já existir
     IF OBJECT_ID('tempdb..##temp_fatos_relevantes_convertido') IS NOT NULL
         DROP TABLE ##temp_fatos_relevantes_convertido;
 
+    -- Cria tabela temporária global convertida com tipos adequados
     CREATE TABLE ##temp_fatos_relevantes_convertido (
-       
-
-       
+        acao VARCHAR(50),
+        data_acao DATE,
+        hora TIME(0),
+        descricao VARCHAR(MAX),
+        link VARCHAR(MAX)
     );
 
-    INSERT INTO ##temp_fatos_relevantes_convertido
+    /*
+      Regras de limpeza aplicadas abaixo:
+      - NULLIF(...,'') transforma strings vazias em NULL
+      - REPLACE(..., CHAR(13), '') remove CR remanescente
+      - LTRIM/RTRIM para remover espaços
+      - TRY_CONVERT evita erro em linhas sujas e retorna NULL quando impossível converter
+    */
+
+    INSERT INTO ##temp_fatos_relevantes_convertido (
+        acao, data_acao, hora, descricao, link
+    )
     SELECT
 
+        -- código da ação (ex: ADHM3)
+        NULLIF(REPLACE(LTRIM(RTRIM(acao)), CHAR(13), ''), '') AS acao,
 
+        -- data da ação (formato dd/MM/yyyy)
+        TRY_CONVERT(DATE, REPLACE(NULLIF(LTRIM(RTRIM(data_acao)), ''), CHAR(13), ''), 103) AS data_acao,
+
+        -- hora (HH:mm ou HH:mm:ss) - armazena como TIME(0)
+        TRY_CONVERT(TIME(0), NULLIF(REPLACE(LTRIM(RTRIM(hora)), CHAR(8), ''), '')) AS hora,
+
+        -- descrição livre (mantém texto grande)
+        NULLIF(REPLACE(LTRIM(RTRIM(descricao)), CHAR(13), ''), '') AS descricao,
+
+        -- link (URL) - pode ser NULL
+        NULLIF(REPLACE(LTRIM(RTRIM(link)), CHAR(13), ''), '') AS link
 
     FROM ##temp_fatos_relevantes_bruto;
 
-    PRINT '✅ Transformação concluída.';
+    PRINT '✅ Transformação de FATOS RELEVANTES concluída.';
 END;
 GO
-
 
 ------------------------------------------------------------
 -- ⿣ CARGA - Insere na tabela final
@@ -123,7 +150,7 @@ BEGIN
     PRINT '💾 Iniciando carga de dados para dbo.fatos_relevantes...';
 
     INSERT INTO dbo.fatos_relevantes (
-        id, acao, data_acao, hora, descricao, link
+        acao, data_acao, hora, descricao, link
     )
     SELECT * FROM ##temp_fatos_relevantes_convertido;
 

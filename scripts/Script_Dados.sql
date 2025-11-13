@@ -69,15 +69,11 @@ GO
 
 
 CREATE TABLE fatos_relevantes (
-  id INTEGER PRIMARY KEY,
-  acao VARCHAR(10),
-  data DATE,
+  acao VARCHAR (10),
+  data_acao VARCHAR(10),
   hora TIME,
-  descricao VARCHAR(500),
-  link VARCHAR(500),
-  CONSTRAINT fk_fatosrelevantes_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+  descricao VARCHAR(MAX),
+  link VARCHAR(MAX),
 );
 
 CREATE TABLE demonstracoes_trimestrais (
