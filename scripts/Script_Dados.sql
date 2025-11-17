@@ -87,15 +87,24 @@ CREATE TABLE demonstracoes_trimestrais (
     REFERENCES empresas(papel)
 );
 
-CREATE TABLE historico_mensal (
-  id INTEGER PRIMARY KEY,
-  acao VARCHAR(10),
-  ano INTEGER,
-  mes INTEGER,
-  CONSTRAINT fk_historicomensal_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+CREATE TABLE dbo.historico (
+    acao VARCHAR(50) NOT NULL,
+    ano    INT,
+    jan    DECIMAL(20,4),
+    feb    DECIMAL(20,4),
+    mar    DECIMAL(20,4),
+    apr    DECIMAL(20,4),
+    may    DECIMAL(20,4),
+    jun    DECIMAL(20,4),
+    jul    DECIMAL(20,4),
+    aug    DECIMAL(20,4),
+    sep    DECIMAL(20,4),
+    oct    DECIMAL(20,4),
+    nov    DECIMAL(20,4),
+    [dec]  DECIMAL(20,4),
+    eoy    DECIMAL(20,4),
 );
+
 
 CREATE TABLE precos_diarios (
   id INTEGER PRIMARY KEY,
