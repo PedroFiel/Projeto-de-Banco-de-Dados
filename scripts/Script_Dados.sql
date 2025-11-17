@@ -107,25 +107,22 @@ CREATE TABLE dbo.historico (
 
 
 CREATE TABLE precos_diarios (
-  id INTEGER PRIMARY KEY,
-  acao VARCHAR(10),
-  data_preco DATE,
-  fechamento DECIMAL(10,6),
-  maxima DECIMAL(10,6),
-  minima DECIMAL(10,6),
-  abertura DECIMAL(10,6),
-  volume BIGINT,
-  retorno_diario DECIMAL(8,4),
-  retorno_acumulado DECIMAL(10,4),
-  retorno_normalizado DECIMAL(15,12),
-  retorno_futuro DECIMAL(15,12),
-  volatilidade DECIMAL(15,12),
-  mm20 DECIMAL(10,6),
-  detrend DECIMAL(10,6),
-  CONSTRAINT fk_precosdiarios_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+    acao                   VARCHAR(50),
+    data_preco             DATE,
+    fechamento             DECIMAL(20,10),
+    maxima                 DECIMAL(20,10),
+    minima                 DECIMAL(20,10),
+    abertura               DECIMAL(20,10),
+    volume                 BIGINT,
+    retorno_diario         DECIMAL(20,4),
+    retorno_acumulado      DECIMAL(20,4),
+    retorno_normalizado    DECIMAL(20,10),
+    retorno_futuro         DECIMAL(20,10),
+    volatilidade           DECIMAL(20,4),
+    mm20                   DECIMAL(20,10),
+    detrend                DECIMAL(20,10)
 );
+
 
 CREATE TABLE dbo.proventos (
     data_decl DATE NULL,                   -- Data da declaração do provento
