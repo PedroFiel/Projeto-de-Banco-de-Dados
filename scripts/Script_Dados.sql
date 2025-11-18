@@ -131,13 +131,9 @@ CREATE TABLE dbo.proventos (
 );
 
 CREATE TABLE retornos_acumulados (
-  id INTEGER PRIMARY KEY,
-  acao VARCHAR(10),
-  periodo_dias INTEGER,
-  total_acumulado DECIMAL(8,2),
-  CONSTRAINT fk_retornosacumulados_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+  periodo_dias VARCHAR(MAX),
+  papel VARCHAR(MAX),
+  acumulo_total DECIMAL(16,2)
 );
 
 CREATE TABLE sites_ri (
