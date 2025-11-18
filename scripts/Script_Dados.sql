@@ -77,14 +77,10 @@ CREATE TABLE fatos_relevantes (
 );
 
 CREATE TABLE demonstracoes_trimestrais (
-  id INTEGER PRIMARY KEY,
   data_referencia DATE,
-  url_demonstracao VARCHAR(255),
-  url_release VARCHAR(255),
-  acao VARCHAR(10),
-  CONSTRAINT fk_demonstracoestrimestrais_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+  demonstracao_financeira VARCHAR(MAX),
+  release_resultados VARCHAR(MAX),
+  acao VARCHAR(MAX)
 );
 
 CREATE TABLE dbo.historico (
