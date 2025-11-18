@@ -28,9 +28,9 @@ BEGIN
     CREATE TABLE ##temp_riempresas_bruto (
         id VARCHAR(MAX),
         acao VARCHAR(MAX),
-        url_site VARCHAR(MAX),
+        sites_url VARCHAR(MAX)
     );
-CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(40MAX));
+CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(MAX));
 
 -- Lista todos os arquivos .csv na pasta desejada
 INSERT INTO #Arquivos (NomeArquivo)
@@ -42,8 +42,8 @@ DELETE FROM #Arquivos WHERE NomeArquivo IS NULL;
 -- =====================================================
 -- LOOP PARA FAZER BULK INSERT DE CADA ARQUIVO
 -- =====================================================
-DECLARE @arquivo NVARCHAR(40MAX), 
-        @sql NVARCHAR(MMAX);
+DECLARE @arquivo NVARCHAR(MAX), 
+        @sql NVARCHAR(MAX);
 
 DECLARE cursor_arquivos CURSOR FOR
 SELECT NomeArquivo FROM #Arquivos;
@@ -91,23 +91,34 @@ BEGIN
 
     PRINT '⚙ Iniciando transformação dos dados...';
 
+    -- Garante que não exista versão antiga da temp table convertida
     IF OBJECT_ID('tempdb..##temp_riempresas_convertido') IS NOT NULL
         DROP TABLE ##temp_riempresas_convertido;
 
     CREATE TABLE ##temp_riempresas_convertido (
-       
-
-       
+       acao VARCHAR(MAX),
+       sites_url VARCHAR(MAX)
     );
 
-    INSERT INTO ##temp_riempresas_convertido
+    -- Usar SQL dinâmico para evitar validação de colunas em tempo de criação da procedure
+    DECLARE @sql NVARCHAR(MAX) = N'
+    INSERT INTO ##temp_riempresas_convertido (acao, sites_url)
     SELECT
-
-
-
+        NULLIF(acao, '''') as acao,
+        NULLIF(sites_url, '''') as sites_url
     FROM ##temp_riempresas_bruto;
+    ';
 
-    PRINT '✅ Transformação concluída.';
+    BEGIN TRY
+        EXEC sp_executesql @sql;
+        PRINT '✅ Transformação concluída.';
+    END TRY
+    BEGIN CATCH
+        DECLARE @err NVARCHAR(4000) = ERROR_MESSAGE();
+        PRINT ' Erro na transformação: ' + @err;
+        -- rethrow se desejar:
+        -- RAISERROR(@err, 16, 1);
+    END CATCH;
 END;
 GO
 
@@ -123,7 +134,7 @@ BEGIN
     PRINT '💾 Iniciando carga de dados para dbo.riempresas...';
 
     INSERT INTO dbo.sites_ri (
-         
+         acao, sites_url
     )
     SELECT * FROM ##temp_riempresas_convertido;
 
@@ -158,3 +169,4 @@ BEGIN
     END CATCH
 END;
 GO
+

@@ -141,12 +141,8 @@ CREATE TABLE retornos_acumulados (
 );
 
 CREATE TABLE sites_ri (
-  id INTEGER PRIMARY KEY,
-  acao VARCHAR(10),
-  site VARCHAR(255),
-  CONSTRAINT fk_sitesri_empresas
-	FOREIGN KEY (acao)
-    REFERENCES empresas(papel)
+  acao VARCHAR(MAX),
+  sites_url VARCHAR(MAX),
 );
 ----------
 CREATE TABLE balancos_anuais (
