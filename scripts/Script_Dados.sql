@@ -2,24 +2,6 @@ CREATE DATABASE dataset_b3;
 
 USE dataset_b3;
 
-CREATE TABLE setores (
-  setor_id INTEGER PRIMARY KEY,
-  nome_setor VARCHAR(255) NOT NULL,
-  categoria_superior VARCHAR(255)
-);
-
-CREATE TABLE empresas (
-  empresa_id INTEGER PRIMARY KEY,
-  papel VARCHAR(10) UNIQUE NOT NULL,
-  razao_social VARCHAR(255),
-  cnpj VARCHAR(20),
-  setor_id INTEGER,
-  data_listagem DATE,
-  CONSTRAINT fk_empresas_setores
-	FOREIGN KEY (setor_id)
-    REFERENCES setores(setor_id)
-);
-
 CREATE TABLE dbo.dados_financeiros (
     id_dados INT PRIMARY KEY NOT NULL,                        -- id do registro
     papel VARCHAR(50),                         -- código do ativo (ex: PETR4)
@@ -134,13 +116,16 @@ CREATE TABLE retornos_acumulados (
   periodo_dias VARCHAR(MAX),
   papel VARCHAR(MAX),
   acumulo_total DECIMAL(16,2)
+  CONSTRAINT FK_retornos_acumulados_dados_financeiros
+	FOREIGN KEY (papel)
+	REFERENCES dados_financeiros (papel);
 );
 
 CREATE TABLE sites_ri (
   acao VARCHAR(MAX),
   sites_url VARCHAR(MAX),
 );
-----------
+---------- TABELAS TESTES --------------
 CREATE TABLE balancos_anuais (
   id INTEGER PRIMARY KEY,
   empresa_id INTEGER,
@@ -161,40 +146,6 @@ CREATE TABLE indicadores_setoriais (
   media_div_yield DOUBLE PRECISION,
   sum_valor_mercado DOUBLE PRECISION,
   CONSTRAINT fk_indicadoressetoriais_setores
-	FOREIGN KEY (setor_id)
-    REFERENCES setores(setor_id)
-);
-
-CREATE TABLE cotacoes_setoriais (
-  id INTEGER PRIMARY KEY,
-  setor_id INTEGER,
-  data DATE,
-  valor_mercado_total DOUBLE PRECISION,
-  retorno_setor_pct DOUBLE PRECISION,
-  CONSTRAINT fk_cotacoessetoriais_setores
-	FOREIGN KEY (setor_id)
-    REFERENCES setores(setor_id)
-);
-
-CREATE TABLE dividendos_setoriais (
-  id INTEGER PRIMARY KEY,
-  setor_id INTEGER,
-  ano INTEGER,
-  total_proventos_valor DOUBLE PRECISION,
-  total_proventos_quantidade INTEGER,
-  CONSTRAINT fk_dividendossetoriais_setores
-	FOREIGN KEY (setor_id)
-    REFERENCES setores(setor_id)
-);
-
-CREATE TABLE fatos_setoriais (
-  id INTEGER PRIMARY KEY,
-  setor_id INTEGER,
-  data DATE,
-  tipo_evento VARCHAR(100),
-  descricao VARCHAR(500),
-  numero_empresas_afetadas INTEGER,
-  CONSTRAINT fk_fatossetoriais_setores
 	FOREIGN KEY (setor_id)
     REFERENCES setores(setor_id)
 );
