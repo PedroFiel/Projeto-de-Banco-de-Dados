@@ -35,7 +35,7 @@ BEGIN
         vol_med_2m VARCHAR(MAX),
         valor_mercado VARCHAR(MAX),
         valor_firma VARCHAR(MAX),
-        ult_balanco_pro VARCHAR(MAX),2
+        ult_balanco_pro VARCHAR(MAX),
         nr_acoes VARCHAR(MAX),
         os_dia VARCHAR(MAX),
         pl VARCHAR(MAX),
@@ -67,7 +67,7 @@ BEGIN
         lucro_liquido_12m VARCHAR(MAX),
         lucro_liquido_3m VARCHAR(MAX)
     );
-CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(40MAX));
+CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(MAX));
 
 -- Lista todos os arquivos .csv na pasta desejada
 INSERT INTO #Arquivos (NomeArquivo)
@@ -79,8 +79,8 @@ DELETE FROM #Arquivos WHERE NomeArquivo IS NULL;
 -- =====================================================
 -- LOOP PARA FAZER BULK INSERT DE CADA ARQUIVO
 -- =====================================================
-DECLARE @arquivo NVARCHAR(40MAX), 
-        @sql NVARCHAR(MMAX);
+DECLARE @arquivo NVARCHAR(MAX), 
+        @sql NVARCHAR(MAX);
 
 DECLARE cursor_arquivos CURSOR FOR
 SELECT NomeArquivo FROM #Arquivos;
@@ -128,106 +128,135 @@ BEGIN
 
     PRINT '⚙️ Iniciando transformação dos dados...';
 
+    -- Remove se já existir
     IF OBJECT_ID('tempdb..##temp_dados_gerais_convertido') IS NOT NULL
         DROP TABLE ##temp_dados_gerais_convertido;
 
+    -- Cria tabela temporária global convertida com tipos adequados
     CREATE TABLE ##temp_dados_gerais_convertido (
-        id INTEGER PRIMARY KEY,
-        papel VARCHAR(MAX),
-        tipo VARCHAR(MAX),
-        empresa VARCHAR(MAX),
-        setor VARCHAR(MAX),
-        cotacao FLOAT,
+        id_dados INT PRIMARY KEY,
+        papel VARCHAR(50),
+        tipo VARCHAR(50),
+        empresa VARCHAR(200),
+        setor VARCHAR(200),
+        cotacao DECIMAL(18,4),
         data_ult_cotacao DATE,
-        min_52_sem FLOAT,
-        max_52_sem FLOAT,
-        vol_med_2m FLOAT,
-        valor_mercado FLOAT,
-        valor_firma FLOAT,
-        ult_balanco_pro FLOAT,
-        nr_acoes FLOAT,
-        os_dia FLOAT,
-        pl FLOAT,
-        lpa FLOAT,
-        pvp FLOAT,
-        vpa FLOAT,
-        p_ebit FLOAT,
-        psr FLOAT,
-        p_ativos FLOAT,
-        p_cap_giro FLOAT,
-        p_ativo_circ_liq FLOAT,
-        ev_ebitda FLOAT,
-        ev_ebit FLOAT,
-        marg_bruta FLOAT,
-        marg_ebit FLOAT,
-        marg_liquida FLOAT,
-        ebit_ativo FLOAT,
-        roic FLOAT,
-        roe FLOAT,
-        cresc_rec_5a FLOAT,
-        div_yield FLOAT,
-        liquidez_corr FLOAT,
-        ativo FLOAT,
-        disponibilidades FLOAT,
-        ativo_circulante FLOAT,
-        div_bruta FLOAT,
-        div_liquida FLOAT,
-        patr_liquido FLOAT,
-        lucro_liquido_12m FLOAT,
-        lucro_liquido_3m FLOAT
+        min_52_sem DECIMAL(18,4),
+        max_52_sem DECIMAL(18,4),
+        vol_med_2m BIGINT,
+        valor_mercado DECIMAL(20,2),
+        valor_firma DECIMAL(20,2),
+        ult_balanco_pro DATE,
+        nr_acoes BIGINT,
+        os_dia DECIMAL(18,2),
+        pl DECIMAL(18,4),
+        lpa DECIMAL(18,4),
+        pvp DECIMAL(18,4),
+        vpa DECIMAL(20,4),
+        p_ebit DECIMAL(18,4),
+        psr DECIMAL(18,4),
+        p_ativos DECIMAL(18,4),
+        p_cap_giro DECIMAL(18,4),
+        p_ativo_circ_liq DECIMAL(18,4),
+        ev_ebitda DECIMAL(18,4),
+        ev_ebit DECIMAL(18,4),
+        marg_bruta DECIMAL(10,4),
+        marg_ebit DECIMAL(10,4),
+        marg_liquida DECIMAL(10,4),
+        ebit_ativo DECIMAL(18,4),
+        roic DECIMAL(10,4),
+        roe DECIMAL(10,4),
+        cresc_rec_5a DECIMAL(10,4),
+        div_yield DECIMAL(10,4),
+        liquidez_corr DECIMAL(18,4),
+        ativo DECIMAL(20,2),
+        disponibilidades DECIMAL(20,2),
+        ativo_circulante DECIMAL(20,2),
+        div_bruta DECIMAL(20,2),
+        div_liquida DECIMAL(20,2),
+        patr_liquido DECIMAL(20,2),
+        lucro_liquido_12m DECIMAL(20,2),
+        lucro_liquido_3m DECIMAL(20,2)
     );
 
-    INSERT INTO ##temp_dados_gerais_convertido
+    INSERT INTO ##temp_dados_gerais_convertido (
+        id_dados, papel, tipo, empresa, setor,
+        cotacao, data_ult_cotacao, min_52_sem, max_52_sem, vol_med_2m,
+        valor_mercado, valor_firma, ult_balanco_pro, nr_acoes, os_dia,
+        pl, lpa, pvp, vpa, p_ebit, psr, p_ativos, p_cap_giro,
+        p_ativo_circ_liq, ev_ebitda, ev_ebit, marg_bruta, marg_ebit,
+        marg_liquida, ebit_ativo, roic, roe, cresc_rec_5a, div_yield,
+        liquidez_corr, ativo, disponibilidades, ativo_circulante,
+        div_bruta, div_liquida, patr_liquido, lucro_liquido_12m, lucro_liquido_3m
+    )
     SELECT
-        TRY_CAST(id AS INT),
-        LTRIM(RTRIM(papel)),
-        LTRIM(RTRIM(tipo)),
-        LTRIM(RTRIM(empresa)),
-        LTRIM(RTRIM(setor)),
-        TRY_CAST(REPLACE(cotacao, ',', '.') AS FLOAT),
-        TRY_CONVERT(DATE, data_ult_cotacao, 103),
-        TRY_CAST(REPLACE(min_52_sem, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(max_52_sem, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(vol_med_2m, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(valor_mercado, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(valor_firma, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(ult_balanco_pro, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(nr_acoes, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(os_dia, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(pl, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(lpa, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(pvp, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(vpa, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(p_ebit, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(psr, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(p_ativos, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(p_cap_giro, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(p_ativo_circ_liq, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(ev_ebitda, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(ev_ebit, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(marg_bruta, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(marg_ebit, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(marg_liquida, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(ebit_ativo, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(roic, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(roe, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(cresc_rec_5a, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(div_yield, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(liquidez_corr, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(ativo, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(disponibilidades, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(ativo_circulante, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(div_bruta, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(div_liquida, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(patr_liquido, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(lucro_liquido_12m, ',', '.') AS FLOAT),
-        TRY_CAST(REPLACE(lucro_liquido_3m, ',', '.') AS FLOAT)
+        -- id
+        TRY_CONVERT(INT, NULLIF(id, '-')) AS id,
+
+        -- strings (trim)
+        NULLIF(LTRIM(RTRIM(papel)), '') AS papel,
+        NULLIF(LTRIM(RTRIM(tipo)), '') AS tipo,
+        NULLIF(LTRIM(RTRIM(empresa)), '') AS empresa,
+        NULLIF(LTRIM(RTRIM(setor)), '') AS setor,
+
+        -- números e datas (pt-BR)
+        TRY_CONVERT(DECIMAL(18,2),REPLACE(NULLIF(cotacao,'-'),',','.')) AS cotacao,
+
+        TRY_CONVERT(DATE, NULLIF(data_ult_cotacao,'-'), 103) AS data_ult_cotacao,
+
+        TRY_CONVERT(DECIMAL(18,2), REPLACE(NULLIF(min_52_sem,'-'),',','.') ) AS min_52_sem,
+        TRY_CONVERT(DECIMAL(18,2), REPLACE(NULLIF(max_52_sem,'-'),',','.') ) AS max_52_sem,
+
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(vol_med_2m,'-'),'.','')) AS vol_med_2m,
+
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(valor_mercado,'-'),'.','')) AS valor_mercado,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(valor_firma,'-'),'.','')) AS valor_firma,
+
+        TRY_CONVERT(DATE, NULLIF(ult_balanco_pro,'-'), 103) AS ult_balanco_pro,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(nr_acoes,'-'),'.','')) AS nr_acoes,
+        TRY_CONVERT(DECIMAL(18,2), NULLIF(os_dia,'-')) AS os_dia,
+
+        TRY_CONVERT(DECIMAL(16,2), NULLIF(pl,'-')) AS pl,
+        TRY_CONVERT(DECIMAL(16,2), NULLIF(lpa,'-')) AS lpa,
+        TRY_CONVERT(DECIMAL(16,2), NULLIF(pvp,'-')) AS pvp,
+        TRY_CONVERT(DECIMAL(16,2), NULLIF(vpa,'-')) AS vpa,
+        TRY_CONVERT(DECIMAL(16,2), NULLIF(p_ebit,'-')) AS p_ebit,
+
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(psr,'-'),'.',''),',','.') ) AS psr,
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(p_ativos,'-'),'.',''),',','.') ) AS p_ativos,
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(p_cap_giro,'-'),'.',''),',','.') ) AS p_cap_giro,
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(p_ativo_circ_liq,'-'),'.',''),',','.') ) AS p_ativo_circ_liq,
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(ev_ebitda,'-'),'.',''),',','.') ) AS ev_ebitda,
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(ev_ebit,'-'),'.',''),',','.') ) AS ev_ebit,
+
+        TRY_CONVERT(DECIMAL(10,2), NULLIF(marg_bruta,'-')) AS marg_bruta,
+        TRY_CONVERT(DECIMAL(10,4), REPLACE(REPLACE(NULLIF(marg_ebit,'-'),'.',''),',','.') ) AS marg_ebit,
+        TRY_CONVERT(DECIMAL(10,4), REPLACE(REPLACE(NULLIF(marg_liquida,'-'),'.',''),',','.') ) AS marg_liquida,
+
+        TRY_CONVERT(DECIMAL(18,2), NULLIF(ebit_ativo,'-')) AS ebit_ativo,
+        TRY_CONVERT(DECIMAL(10,4), REPLACE(REPLACE(NULLIF(roic,'-'),'.',''),',','.') ) AS roic,
+        TRY_CONVERT(DECIMAL(10,4), REPLACE(REPLACE(NULLIF(roe,'-'),'.',''),',','.') ) AS roe,
+
+        TRY_CONVERT(DECIMAL(10,4), REPLACE(REPLACE(NULLIF(cresc_rec_5a,'-'),'.',''),',','.') ) AS cresc_rec_5a,
+        TRY_CONVERT(DECIMAL(10,4), REPLACE(REPLACE(NULLIF(div_yield,'-'),'.',''),',','.') ) AS div_yield,
+        TRY_CONVERT(DECIMAL(18,4), REPLACE(REPLACE(NULLIF(liquidez_corr,'-'),'.',''),',','.') ) AS liquidez_corr,
+
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(ativo,'-'),'.','')) AS ativo,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(disponibilidades,'-'),'.','')) AS disponibilidades,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(ativo_circulante,'-'),'.','')) AS ativo_circulante,
+
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(div_bruta,'-'),'.','')) AS div_bruta,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(div_liquida,'-'),'.','')) AS div_liquida,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(patr_liquido,'-'),'.','')) AS patr_liquido,
+
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(lucro_liquido_12m,'-'),'.','')) AS lucro_liquido_12m,
+        TRY_CONVERT(BIGINT, REPLACE(NULLIF(lucro_liquido_3m,'-'),'.','')) AS lucro_liquido_3m
+
     FROM ##temp_dados_gerais_bruto;
 
     PRINT '✅ Transformação concluída.';
 END;
 GO
-
 
 ------------------------------------------------------------
 -- 3️⃣ CARGA - Insere na tabela final
@@ -240,7 +269,7 @@ BEGIN
     PRINT '💾 Iniciando carga de dados para dbo.dados_financeiros...';
 
     INSERT INTO dbo.dados_financeiros (
-        id, papel, tipo, empresa, setor,
+        id_dados, papel, tipo, empresa, setor,
         cotacao, data_ult_cotacao, min_52_sem, max_52_sem, vol_med_2m,
         valor_mercado, valor_firma, ult_balanco_pro, nr_acoes, os_dia,
         pl, lpa, pvp, vpa, p_ebit, psr, p_ativos, p_cap_giro,
@@ -282,5 +311,3 @@ BEGIN
     END CATCH
 END;
 GO
-
-

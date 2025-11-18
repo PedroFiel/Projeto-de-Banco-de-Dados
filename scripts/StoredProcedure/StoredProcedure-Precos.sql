@@ -22,38 +22,70 @@ BEGIN
 
     PRINT '📂 Iniciando extração do arquivo: ';
 
-    IF OBJECT_ID('tempdb..##temp_precos_bruto') IS NOT NULL
-        DROP TABLE ##temp_precos_bruto;
+/* ===== CONFIGURAÇÃO: ajuste este caminho se necessário ===== */
+DECLARE @FolderPath NVARCHAR(400) = N'C:\dataset\Precos\'; -- pasta com os arquivos .csv
 
-    CREATE TABLE ##temp_precos_bruto (
-        data_preco VARCHAR(MAX),
-        fechamento VARCHAR(MAX),
-        maxima VARCHAR(MAX),
-        minima VARCHAR(MAX),
-        abertura VARCHAR(MAX),
-        volume VARCHAR(MAX),
-        retorno_diario VARCHAR(MAX),
-        retorno_acumulado VARCHAR(MAX),
-        retorno_normalizado VARCHAR(MAX),
-        retorno_futuro VARCHAR(MAX),
-        volatilidade VARCHAR(MAX),
-        mm20 VARCHAR(MAX),
-        detrend VARCHAR(MAX)
-    );
-CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(40MAX));
+/* ===== PREPARA STAGING ===== */
+/* tabela temporária onde cada arquivo é importado (colunas conforme layout do CSV) */
+IF OBJECT_ID('tempdb..##temp_monthly_bruto') IS NOT NULL
+    DROP TABLE ##temp_monthly_bruto;
 
--- Lista todos os arquivos .csv na pasta desejada
+CREATE TABLE ##temp_monthly_bruto (
+    data_preco VARCHAR(MAX),
+    fechamento VARCHAR(MAX),
+    maxima VARCHAR(MAX),
+    minima VARCHAR(MAX),
+    abertura VARCHAR(MAX),
+    volume VARCHAR(MAX),
+    retorno_diario VARCHAR(MAX),
+    retorno_acumulado VARCHAR(MAX),
+    retorno_normalizado VARCHAR(MAX),
+    retorno_futuro VARCHAR(MAX),
+    volatilidade VARCHAR(MAX),
+    mm20 VARCHAR(MAX),
+    detrend VARCHAR(MAX)
+);
+
+/* tabela final consolidada (com TICKER mais as colunas) */
+IF OBJECT_ID('tempdb..##temp_monthly_all') IS NOT NULL
+    DROP TABLE ##temp_monthly_all;
+
+CREATE TABLE ##temp_monthly_all (
+    acao VARCHAR(50),
+    data_preco VARCHAR(MAX),
+    fechamento VARCHAR(MAX),
+    maxima VARCHAR(MAX),
+    minima VARCHAR(MAX),
+    abertura VARCHAR(MAX),
+    volume VARCHAR(MAX),
+    retorno_diario VARCHAR(MAX),
+    retorno_acumulado VARCHAR(MAX),
+    retorno_normalizado VARCHAR(MAX),
+    retorno_futuro VARCHAR(MAX),
+    volatilidade VARCHAR(MAX),
+    mm20 VARCHAR(MAX),
+    detrend VARCHAR(MAX)
+);
+
+/* ===== Lista arquivos ===== */
+CREATE TABLE #Arquivos (NomeArquivo NVARCHAR(400));
+
+DECLARE @arquivopath NVARCHAR(400) = N'dir /b "' + @FolderPath + '*.csv"';
+
+select @arquivopath
+
 INSERT INTO #Arquivos (NomeArquivo)
-EXEC xp_cmdshell 'dir /b "C:\dataset\Precos\*.csv"';
+EXEC xp_cmdshell @arquivopath 
 
--- Remove linhas nulas (resultantes do DIR)
 DELETE FROM #Arquivos WHERE NomeArquivo IS NULL;
 
--- =====================================================
--- LOOP PARA FAZER BULK INSERT DE CADA ARQUIVO
--- =====================================================
-DECLARE @arquivo NVARCHAR(40MAX), 
-        @sql NVARCHAR(MMAX);
+/* ===== Loop por arquivo: bulk insert + inserir ticker ===== */
+DECLARE @arquivo NVARCHAR(400),
+        @fullpath NVARCHAR(800),
+        @ticker NVARCHAR(100),
+        @sql NVARCHAR(MAX),
+        @fileExists INT,
+        @errMsg NVARCHAR(4000);
 
 DECLARE cursor_arquivos CURSOR FOR
 SELECT NomeArquivo FROM #Arquivos;
@@ -63,22 +95,58 @@ FETCH NEXT FROM cursor_arquivos INTO @arquivo;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
-    SET @sql = '
-        BULK INSERT dataset_b3.dbo.##temp_precos_bruto
-        FROM ''C:\dataset\Precos\' + @arquivo + '''
+    SET @fullpath = @FolderPath + @arquivo;
+
+    -- nome do ticker sem extensão
+    SET @ticker = LEFT(@arquivo, CASE WHEN CHARINDEX('.', @arquivo) > 0 THEN CHARINDEX('.', @arquivo) - 1 ELSE LEN(@arquivo) END);
+
+    -- verifica existência
+    EXEC master..xp_fileexist @fullpath, @fileExists OUTPUT;
+    IF @fileExists <> 1
+    BEGIN
+        PRINT 'Arquivo inexistente/inacessivel: ' + ISNULL(@arquivo,'(NULL)');
+        FETCH NEXT FROM cursor_arquivos INTO @arquivo;
+        CONTINUE;
+    END
+
+    -- limpa staging bruto antes do import (garante que só tem linhas do arquivo atual)
+    TRUNCATE TABLE ##temp_monthly_bruto;
+
+    -- BULK INSERT para a tabela temporária bruta
+    SET @sql = N'
+        BULK INSERT tempdb..##temp_monthly_bruto
+        FROM N''' + REPLACE(@fullpath,'''','''''') + N'''
         WITH (
-            FIRSTROW = 2,               -- ignora cabeçalho
-            FIELDTERMINATOR = '';'',    -- separador CSV
-            ROWTERMINATOR = ''\n'',     -- quebra de linha
+            FIRSTROW = 2,                 -- pula cabeçalho
+            FIELDTERMINATOR = '';'',
+            ROWTERMINATOR = ''\n'',
             TABLOCK,
-            CODEPAGE = ''65001''-- encoding padrão Windows
+            CODEPAGE = ''65001'',
+            MAXERRORS = 0
         );';
 
-    PRINT 'Importando arquivo: ' + @arquivo;
-    EXEC (@sql);
+    PRINT 'Tentando BULK INSERT: ' + @arquivo;
+    BEGIN TRY
+        EXEC sp_executesql @sql;
+    END TRY
+    BEGIN CATCH
+        SET @errMsg = ERROR_MESSAGE();
+        PRINT 'ERRO no BULK para ' + @arquivo + ' -> ' + ISNULL(@errMsg,'(vazio)');
+        -- continua com o próximo arquivo
+        FETCH NEXT FROM cursor_arquivos INTO @arquivo;
+        CONTINUE;
+    END CATCH
+
+    -- insere na tabela consolidada adicionando o TICKER
+    INSERT INTO ##temp_monthly_all (acao, data_preco, fechamento, maxima, minima, abertura, volume, retorno_diario, retorno_acumulado, retorno_normalizado, retorno_futuro, volatilidade, mm20, detrend)
+    SELECT
+        @ticker, data_preco, fechamento, maxima, minima, abertura, volume, retorno_diario, retorno_acumulado, retorno_normalizado, retorno_futuro, volatilidade, mm20, detrend
+    FROM ##temp_monthly_bruto;
+
+    PRINT 'Arquivo processado: ' + @arquivo + ' (TICKER=' + @ticker + ')';
 
     FETCH NEXT FROM cursor_arquivos INTO @arquivo;
-END;
+END
 
 CLOSE cursor_arquivos;
 DEALLOCATE cursor_arquivos;
@@ -87,10 +155,11 @@ DROP TABLE #Arquivos;
 
 PRINT '✅ Importação concluída com sucesso!';
 
-    DECLARE @Linhas INT = (SELECT COUNT(*) FROM ##temp_precos_bruto);
+    DECLARE @Linhas INT = (SELECT COUNT(*) FROM ##temp_monthly_all);
     PRINT '📥 Linhas extraídas: ' + CAST(@Linhas AS VARCHAR(MAX));
 END;
 GO
+
 ------------------------------------------------------------
 -- ⿢ TRANSFORMAÇÃO - Limpa e converte tipos
 ------------------------------------------------------------
@@ -105,17 +174,48 @@ BEGIN
         DROP TABLE ##temp_precos_convertido;
 
     CREATE TABLE ##temp_precos_convertido (
-       
-
-       
+        acao                   VARCHAR(50),
+        data_preco             DATE,
+        fechamento             DECIMAL(20,10),
+        maxima                 DECIMAL(20,10),
+        minima                 DECIMAL(20,10),
+        abertura               DECIMAL(20,10),
+        volume                 BIGINT,
+        retorno_diario         DECIMAL(20,4),
+        retorno_acumulado      DECIMAL(20,4),
+        retorno_normalizado    DECIMAL(20,10),
+        retorno_futuro         DECIMAL(20,10),
+        volatilidade           DECIMAL(20,4),
+        mm20                   DECIMAL(20,10),
+        detrend                DECIMAL(20,10)
     );
 
-    INSERT INTO ##temp_precos_convertido
+    INSERT INTO ##temp_precos_convertido (
+        acao, data_preco, fechamento, maxima, minima, abertura, volume, retorno_diario, retorno_acumulado, retorno_normalizado, retorno_futuro, volatilidade, mm20, detrend
+    )
+
     SELECT
-
-
-
-    FROM ##temp_precos_bruto;
+        NULLIF(acao, '') AS acao,
+    
+        TRY_CONVERT(DATE, NULLIF(data_preco, '')) AS data_preco,
+    
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(fechamento, '')) AS fechamento,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(maxima, '')) AS maxima,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(minima, '')) AS minima,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(abertura, '')) AS abertura,
+    
+        TRY_CONVERT(BIGINT, NULLIF(volume, '')) AS volume,
+    
+        TRY_CONVERT(DECIMAL(20,4), NULLIF(retorno_diario, '')) AS retorno_diario,
+        TRY_CONVERT(DECIMAL(20,4), NULLIF(retorno_acumulado, '')) AS retorno_acumulado,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(retorno_normalizado, '')) AS retorno_normalizado,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(retorno_futuro, '')) AS retorno_futuro,
+    
+        TRY_CONVERT(DECIMAL(20,4), NULLIF(volatilidade, '')) AS volatilidade,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(mm20, '')) AS mm20,
+        TRY_CONVERT(DECIMAL(20,10), NULLIF(detrend, '')) AS detrend
+    
+    FROM ##temp_monthly_all;
 
     PRINT '✅ Transformação concluída.';
 END;
@@ -133,7 +233,7 @@ BEGIN
     PRINT '💾 Iniciando carga de dados para dbo.precos_diarios...';
 
     INSERT INTO dbo.precos_diarios (
-        data_preco, fechamento, maxima, minima, abertura, volume, retorno_diario, retorno_acumulado, retorno_normalizado, retorno_futuro, volatilidade, mm20, detrend 
+        acao, data_preco, fechamento, maxima, minima, abertura, volume, retorno_diario, retorno_acumulado, retorno_normalizado, retorno_futuro, volatilidade, mm20, detrend 
     )
     SELECT * FROM ##temp_precos_convertido;
 
