@@ -10,7 +10,7 @@ Este projeto simula um **ciclo completo de engenharia e análise de dados** util
 **LINK-DATABASE**
 
 -   **[Database](https://www.dadosdemercado.com.br/acoes)**
--   **[GitDatabase]([https://www.dadosdemercado.com.br/acoes](https://github.com/Prog-LucasAlves/PUB_Dados_Financeiros_B3/tree/main/Api/fatos_relevantes))**
+-   **[GitDatabase](https://github.com/Prog-LucasAlves/PUB_Dados_Financeiros_B3/tree/main/Api)**
 
 **LINK-TRELLO**
 
@@ -162,3 +162,4 @@ Para dúvidas ou sugestões sobre o projeto, abra uma **issue** neste repositór
 
 
 </div>
+
